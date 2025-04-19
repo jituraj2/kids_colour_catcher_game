@@ -71,7 +71,7 @@
     <button onclick="startGame()">Start Game</button>
   </div>
 
-  <canvas id="gameCanvas" width="360" height="500"></canvas>
+  <canvas id="gameCanvas"></canvas>
   <div id="controls">
     <button onclick="moveLeft()">⬅️</button>
     <button onclick="moveRight()">➡️</button>
@@ -88,11 +88,14 @@
   <script>
     const canvas = document.getElementById("gameCanvas");
     const ctx = canvas.getContext("2d");
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight * 0.7;
+
     const colors = ["red", "green", "blue", "yellow", "purple"];
     let targetColor = colors[Math.floor(Math.random() * colors.length)];
     document.getElementById("targetColor").textContent = targetColor;
 
-    let basket = { x: 150, y: 460, width: 60, height: 20 };
+    let basket = { x: canvas.width / 2 - 30, y: canvas.height - 40, width: 60, height: 20 };
     let balls = [];
     let score = 0;
     let lives = 3;
@@ -101,15 +104,21 @@
     const bgMusic = document.getElementById("bgMusic");
     function toggleMusic() {
       if (bgMusic.paused) {
-        bgMusic.play();
+        bgMusic.play().catch(() => {
+          alert("Tap the 🎵 button to start music!");
+        });
       } else {
         bgMusic.pause();
       }
     }
 
     function speak(text) {
-      const msg = new SpeechSynthesisUtterance(text);
-      speechSynthesis.speak(msg);
+      if ('speechSynthesis' in window) {
+        const msg = new SpeechSynthesisUtterance(text);
+        speechSynthesis.speak(msg);
+      } else {
+        alert("Speech not supported on this device.");
+      }
     }
 
     function createBall() {
@@ -190,7 +199,9 @@
       document.getElementById("startScreen").style.display = "none";
       gameStarted = true;
       speak("Catch " + targetColor);
-      bgMusic.play();
+      bgMusic.play().catch(() => {
+        alert("Tap the 🎵 button to start music!");
+      });
       setInterval(createBall, 1000);
       gameLoop();
     }
