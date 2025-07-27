@@ -5,69 +5,75 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Color Catcher Game</title>
   <style>
-    body {
+    html, body {
       margin: 0;
       padding: 0;
       background: #e0f7fa;
-      overflow: hidden;
+      overflow-x: hidden;
       font-family: Arial, sans-serif;
+      height: 100%;
     }
     canvas {
       display: block;
       margin: auto;
       background: #b2ebf2;
       border: 3px solid #00796b;
+      width: 100vw;
+      height: 70vh;
     }
     #controls {
       text-align: center;
       margin-top: 10px;
     }
     button {
-      font-size: 20px;
-      margin: 10px;
-      padding: 10px 20px;
+      font-size: 6vw;
+      margin: 1vw;
+      padding: 2vw 5vw;
       background-color: #4dd0e1;
       border: none;
       border-radius: 10px;
       color: white;
+      cursor: pointer;
     }
     #info {
       text-align: center;
-      font-size: 18px;
+      font-size: 4vw;
       margin-top: 10px;
     }
     #hint {
       text-align: center;
-      font-size: 16px;
+      font-size: 3.5vw;
       margin-top: 5px;
       color: #004d40;
     }
     #startScreen {
-      position: absolute;
+      position: fixed;
       top: 0;
       left: 0;
-      width: 100%;
-      height: 100%;
-      background: rgba(0, 0, 0, 0.8);
+      width: 100vw;
+      height: 100vh;
+      background: rgba(0, 0, 0, 0.85);
       color: white;
       display: flex;
       flex-direction: column;
       justify-content: center;
       align-items: center;
       z-index: 1000;
+      text-align: center;
+      padding: 5vw;
     }
     #startScreen button {
       background-color: #00bfa5;
-      font-size: 24px;
+      font-size: 6vw;
     }
   </style>
 </head>
 <body>
   <div id="startScreen">
-    <h1>🎨 Color Catcher Game</h1>
-    <p>Catch the correct color balls to score points.</p>
-    <p>Use the arrow buttons below to move the basket.</p>
-    <p>🎯 Match the color shown!</p>
+    <h1 style="font-size: 7vw;">🎨 Color Catcher Game</h1>
+    <p style="font-size: 4.5vw;">Catch the correct color balls to score points.</p>
+    <p style="font-size: 4.5vw;">Use the arrow buttons below to move the basket.</p>
+    <p style="font-size: 5vw;">🎯 Match the color shown!</p>
     <button onclick="startGame()">Start Game</button>
   </div>
 
@@ -75,21 +81,27 @@
   <div id="controls">
     <button onclick="moveLeft()">⬅️</button>
     <button onclick="moveRight()">➡️</button>
-    <button onclick="toggleMusic()">🎵 Toggle Music</button>
+    <button onclick="toggleMusic()">🎵</button>
   </div>
   <div id="info">
-    <div>🎯 Catch: <span id="targetColor">Red</span></div>
-    <div>✅ Score: <span id="score">0</span> | ❤️ Lives: <span id="lives">3</span></div>
+    🎯 Catch: <span id="targetColor">Red</span><br>
+    ✅ Score: <span id="score">0</span> | ❤️ Lives: <span id="lives">3</span>
   </div>
-  <div id="hint">💡 Hint: Move the basket using the arrows and catch the correct colored ball!</div>
+  <div id="hint">💡 Tap the arrows to move and catch the right colored ball!</div>
 
   <audio id="bgMusic" src="https://cdn.pixabay.com/audio/2022/03/15/audio_c4eb480c96.mp3" loop></audio>
 
   <script>
     const canvas = document.getElementById("gameCanvas");
     const ctx = canvas.getContext("2d");
-    canvas.width = window.innerWidth;
-    canvas.height = window.innerHeight * 0.7;
+
+    function resizeCanvas() {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight * 0.7;
+    }
+
+    window.addEventListener('resize', resizeCanvas);
+    resizeCanvas();
 
     const colors = ["red", "green", "blue", "yellow", "purple"];
     let targetColor = colors[Math.floor(Math.random() * colors.length)];
@@ -116,8 +128,6 @@
       if ('speechSynthesis' in window) {
         const msg = new SpeechSynthesisUtterance(text);
         speechSynthesis.speak(msg);
-      } else {
-        alert("Speech not supported on this device.");
       }
     }
 
