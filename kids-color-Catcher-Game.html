@@ -5,63 +5,63 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Color Catcher Game</title>
   <style>
-    * { box-sizing: border-box; }
     body {
       margin: 0;
       padding: 0;
-      font-family: sans-serif;
       background: #e0f7fa;
-      overflow-x: hidden;
+      font-family: Arial, sans-serif;
+      overflow: hidden;
+      touch-action: manipulation;
     }
     canvas {
       display: block;
       width: 100vw;
-      height: 60vh;
+      height: 70vh;
       background: #b2ebf2;
+      border: 3px solid #00796b;
     }
     #controls {
-      display: flex;
-      justify-content: center;
-      gap: 20px;
-      flex-wrap: wrap;
-      margin: 10px;
+      text-align: center;
+      margin-top: 10px;
     }
     button {
-      font-size: 6vw;
+      font-size: 5vw;
+      margin: 10px;
       padding: 10px 20px;
-      background-color: #00796b;
+      background-color: #4dd0e1;
       border: none;
       border-radius: 10px;
       color: white;
       cursor: pointer;
     }
-    #info, #hint {
+    #info {
       text-align: center;
       font-size: 4vw;
-      margin-top: 5px;
+      margin-top: 10px;
     }
     #hint {
+      text-align: center;
+      font-size: 3.5vw;
+      margin-top: 5px;
       color: #004d40;
     }
     #startScreen {
       position: fixed;
-      top: 0; left: 0;
-      width: 100vw; height: 100vh;
-      background: rgba(0,0,0,0.85);
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      background: rgba(0, 0, 0, 0.8);
       color: white;
       display: flex;
       flex-direction: column;
       justify-content: center;
       align-items: center;
       z-index: 1000;
-      text-align: center;
-      padding: 20px;
     }
-    #startBtn {
+    #startScreen button {
       background-color: #00bfa5;
-      font-size: 7vw;
-      padding: 15px 30px;
-      margin-top: 20px;
+      font-size: 6vw;
     }
   </style>
 </head>
@@ -69,163 +69,22 @@
   <div id="startScreen">
     <h1>🎨 Color Catcher Game</h1>
     <p>Catch the correct color balls to score points.</p>
-    <p>Use arrows or tap buttons to move.</p>
+    <p>Use arrow buttons or keys to move the basket.</p>
     <p>🎯 Match the color shown!</p>
-    <button id="startBtn">Start Game</button>
+    <button onclick="startGame()">Start Game</button>
   </div>
 
   <canvas id="gameCanvas"></canvas>
-
   <div id="controls">
     <button onclick="moveLeft()">⬅️</button>
     <button onclick="moveRight()">➡️</button>
-    <button onclick="toggleMusic()">🎵</button>
+    <button onclick="toggleMusic()">🎵 Music</button>
   </div>
-
   <div id="info">
     🎯 Catch: <span id="targetColor">Red</span> |
     ✅ Score: <span id="score">0</span> |
     ❤️ Lives: <span id="lives">3</span>
   </div>
+  <div id="hint">💡 Use arrows or keys to catch the correct color!</div>
 
-  <div id="hint">💡 Use keyboard arrows or tap buttons to move!</div>
-
-  <audio id="bgMusic" src="https://cdn.pixabay.com/audio/2022/03/15/audio_c4eb480c96.mp3" loop></audio>
-
-  <script>
-    const canvas = document.getElementById("gameCanvas");
-    const ctx = canvas.getContext("2d");
-
-    function resizeCanvas() {
-      canvas.width = window.innerWidth;
-      canvas.height = window.innerHeight * 0.6;
-    }
-    window.addEventListener('resize', resizeCanvas);
-    resizeCanvas();
-
-    const colors = ["red", "green", "blue", "yellow", "purple"];
-    let targetColor = colors[Math.floor(Math.random() * colors.length)];
-    document.getElementById("targetColor").textContent = targetColor;
-
-    let basket = {
-      x: canvas.width / 2 - 60,
-      y: canvas.height - 30,
-      width: 120,
-      height: 20
-    };
-    let balls = [];
-    let score = 0;
-    let lives = 3;
-    let gameStarted = false;
-
-    const bgMusic = document.getElementById("bgMusic");
-
-    function toggleMusic() {
-      if (bgMusic.paused) {
-        bgMusic.play().catch(() => alert("Tap to allow music"));
-      } else {
-        bgMusic.pause();
-      }
-    }
-
-    function speak(text) {
-      if ('speechSynthesis' in window) {
-        const msg = new SpeechSynthesisUtterance(text);
-        speechSynthesis.cancel();
-        speechSynthesis.speak(msg);
-      }
-    }
-
-    function createBall() {
-      const color = colors[Math.floor(Math.random() * colors.length)];
-      const x = Math.random() * (canvas.width - 30);
-      balls.push({ x, y: 0, radius: 15, color });
-    }
-
-    function drawBasket() {
-      ctx.fillStyle = "brown";
-      ctx.fillRect(basket.x, basket.y, basket.width, basket.height);
-    }
-
-    function drawBalls() {
-      for (const ball of balls) {
-        ctx.beginPath();
-        ctx.arc(ball.x, ball.y, ball.radius, 0, Math.PI * 2);
-        ctx.fillStyle = ball.color;
-        ctx.fill();
-        ctx.closePath();
-      }
-    }
-
-    function moveLeft() {
-      basket.x -= 40;
-      if (basket.x < 0) basket.x = 0;
-    }
-
-    function moveRight() {
-      basket.x += 40;
-      if (basket.x + basket.width > canvas.width)
-        basket.x = canvas.width - basket.width;
-    }
-
-    // 🎮 Keyboard support
-    window.addEventListener("keydown", function (e) {
-      if (e.key === "ArrowLeft") moveLeft();
-      if (e.key === "ArrowRight") moveRight();
-    });
-
-    function updateBalls() {
-      for (let i = balls.length - 1; i >= 0; i--) {
-        balls[i].y += 4;
-        if (
-          balls[i].y + balls[i].radius > basket.y &&
-          balls[i].x > basket.x &&
-          balls[i].x < basket.x + basket.width
-        ) {
-          if (balls[i].color === targetColor) {
-            score++;
-            if (score >= 10) {
-              alert("🎉 You Win!");
-              location.reload();
-            }
-          } else {
-            lives--;
-            if (lives <= 0) {
-              alert("❌ Game Over!");
-              location.reload();
-            }
-          }
-          balls.splice(i, 1);
-          document.getElementById("score").textContent = score;
-          document.getElementById("lives").textContent = lives;
-          targetColor = colors[Math.floor(Math.random() * colors.length)];
-          document.getElementById("targetColor").textContent = targetColor;
-          speak("Catch " + targetColor);
-        } else if (balls[i].y > canvas.height + 20) {
-          balls.splice(i, 1);
-        }
-      }
-    }
-
-    function gameLoop() {
-      if (!gameStarted) return;
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      drawBasket();
-      drawBalls();
-      updateBalls();
-      requestAnimationFrame(gameLoop);
-    }
-
-    function startGame() {
-      document.getElementById("startScreen").style.display = "none";
-      gameStarted = true;
-      speak("Catch " + targetColor);
-      bgMusic.play().catch(() => console.log("User must allow music"));
-      setInterval(createBall, 1000);
-      gameLoop();
-    }
-
-    document.getElementById("startBtn").addEventListener("click", startGame);
-  </script>
-</body>
-</html>
+  <audio id="bgMusic" src="https://cdn.pixabay.com/audio/2022/03/15
