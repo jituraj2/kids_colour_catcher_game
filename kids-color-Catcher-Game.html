@@ -45,7 +45,7 @@
       margin-top: 5px;
       color: #004d40;
     }
-    #startScreen {
+    .overlayScreen {
       position: fixed;
       top: 0;
       left: 0;
@@ -59,19 +59,25 @@
       align-items: center;
       z-index: 1000;
     }
-    #startScreen button {
+    .overlayScreen button {
       background-color: #00bfa5;
       font-size: 6vw;
     }
   </style>
 </head>
 <body>
-  <div id="startScreen">
+  <div id="startScreen" class="overlayScreen">
     <h1>🎨 Color Catcher Game</h1>
     <p>Catch the correct color balls to score points.</p>
     <p>Use arrow buttons or keys to move the basket.</p>
     <p>🎯 Match the color shown!</p>
     <button onclick="startGame()">Start Game</button>
+  </div>
+
+  <div id="gameOverScreen" class="overlayScreen" style="display: none;">
+    <h1>❌ Game Over</h1>
+    <p>Better luck next time!</p>
+    <button onclick="restartGame()">🔁 Restart</button>
   </div>
 
   <canvas id="gameCanvas"></canvas>
@@ -87,4 +93,164 @@
   </div>
   <div id="hint">💡 Use arrows or keys to catch the correct color!</div>
 
-  <audio id="bgMusic" src="https://cdn.pixabay.com/audio/2022/03/15
+  <audio id="bgMusic" src="https://cdn.pixabay.com/audio/2022/03/15/audio_c4eb480c96.mp3" loop></audio>
+
+  <script>
+    const canvas = document.getElementById("gameCanvas");
+    const ctx = canvas.getContext("2d");
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight * 0.7;
+
+    const colors = ["red", "green", "blue", "yellow", "purple"];
+    let targetColor, basket, balls, score, lives, gameStarted;
+    let ballInterval;
+
+    const bgMusic = document.getElementById("bgMusic");
+
+    function initGame() {
+      basket = { x: canvas.width / 2 - 30, y: canvas.height - 40, width: 60, height: 20 };
+      balls = [];
+      score = 0;
+      lives = 3;
+      targetColor = colors[Math.floor(Math.random() * colors.length)];
+      gameStarted = true;
+      document.getElementById("targetColor").textContent = targetColor;
+      document.getElementById("score").textContent = score;
+      document.getElementById("lives").textContent = lives;
+    }
+
+    function toggleMusic() {
+      if (bgMusic.paused) {
+        bgMusic.play().catch(() => {
+          alert("Tap 🎵 again to start music.");
+        });
+      } else {
+        bgMusic.pause();
+      }
+    }
+
+    function speak(text) {
+      if ('speechSynthesis' in window) {
+        const msg = new SpeechSynthesisUtterance(text);
+        speechSynthesis.speak(msg);
+      }
+    }
+
+    function createBall() {
+      const color = colors[Math.floor(Math.random() * colors.length)];
+      const x = Math.random() * (canvas.width - 20);
+      balls.push({ x, y: 0, radius: 15, color });
+    }
+
+    function drawBasket() {
+      ctx.fillStyle = "brown";
+      ctx.fillRect(basket.x, basket.y, basket.width, basket.height);
+    }
+
+    function drawBalls() {
+      for (const ball of balls) {
+        ctx.beginPath();
+        ctx.arc(ball.x, ball.y, ball.radius, 0, Math.PI * 2);
+        ctx.fillStyle = ball.color;
+        ctx.fill();
+        ctx.closePath();
+      }
+    }
+
+    function moveLeft() {
+      basket.x -= 30;
+      if (basket.x < 0) basket.x = 0;
+    }
+
+    function moveRight() {
+      basket.x += 30;
+      if (basket.x + basket.width > canvas.width)
+        basket.x = canvas.width - basket.width;
+    }
+
+    function updateBalls() {
+      for (let i = balls.length - 1; i >= 0; i--) {
+        balls[i].y += 3;
+        if (
+          balls[i].y + balls[i].radius > basket.y &&
+          balls[i].x > basket.x &&
+          balls[i].x < basket.x + basket.width
+        ) {
+          if (balls[i].color === targetColor) {
+            score++;
+            if (score >= 10) {
+              speak("🎉 You Win!");
+              resetGame(); // Win auto restarts
+            }
+          } else {
+            lives--;
+            if (lives <= 0) {
+              gameOver();
+              return;
+            }
+          }
+          balls.splice(i, 1);
+          document.getElementById("score").textContent = score;
+          document.getElementById("lives").textContent = lives;
+          targetColor = colors[Math.floor(Math.random() * colors.length)];
+          document.getElementById("targetColor").textContent = targetColor;
+          speak("Catch " + targetColor);
+        } else if (balls[i].y > canvas.height) {
+          balls.splice(i, 1);
+        }
+      }
+    }
+
+    function gameLoop() {
+      if (!gameStarted) return;
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      drawBasket();
+      drawBalls();
+      updateBalls();
+      requestAnimationFrame(gameLoop);
+    }
+
+    function startGame() {
+      document.getElementById("startScreen").style.display = "none";
+      initGame();
+      speak("Catch " + targetColor);
+      bgMusic.play().catch(() => {});
+      ballInterval = setInterval(createBall, 1000);
+      gameLoop();
+    }
+
+    function restartGame() {
+      document.getElementById("gameOverScreen").style.display = "none";
+      clearInterval(ballInterval);
+      initGame();
+      ballInterval = setInterval(createBall, 1000);
+      gameLoop();
+    }
+
+    function resetGame() {
+      clearInterval(ballInterval);
+      initGame();
+      ballInterval = setInterval(createBall, 1000);
+    }
+
+    function gameOver() {
+      clearInterval(ballInterval);
+      gameStarted = false;
+      document.getElementById("gameOverScreen").style.display = "flex";
+      speak("Game over");
+    }
+
+    // Keyboard support
+    document.addEventListener("keydown", (e) => {
+      if (e.key === "ArrowLeft") moveLeft();
+      if (e.key === "ArrowRight") moveRight();
+    });
+
+    // Resize handling
+    window.addEventListener("resize", () => {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight * 0.7;
+    });
+  </script>
+</body>
+</html>
