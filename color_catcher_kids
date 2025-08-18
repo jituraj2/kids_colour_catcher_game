@@ -119,15 +119,21 @@
       document.getElementById("lives").textContent = lives;
     }
 
-    function toggleMusic() {
-      if (bgMusic.paused) {
-        bgMusic.play().catch(() => {
-          alert("Tap 🎵 again to start music.");
-        });
-      } else {
-        bgMusic.pause();
-      }
-    }
+   function toggleMusic() {
+  if (bgMusic.paused) {
+    bgMusic.play()
+      .then(() => {
+        console.log("Music started");
+      })
+      .catch((err) => {
+        console.warn("Music play failed:", err);
+        alert("Tap again to enable music (browser restriction).");
+      });
+  } else {
+    bgMusic.pause();
+  }
+}
+
 
     function speak(text) {
       if ('speechSynthesis' in window) {
