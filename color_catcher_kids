@@ -84,7 +84,7 @@
   <div id="controls">
     <button onclick="moveLeft()">⬅️</button>
     <button onclick="moveRight()">➡️</button>
-    <button onclick="toggleMusic()">🎵 Music</button>
+    <button id="musicBtn" onclick="toggleMusic()">🔇</button>
   </div>
   <div id="info">
     🎯 Catch: <span id="targetColor">Red</span> |
@@ -106,6 +106,7 @@
     let ballInterval;
 
     const bgMusic = document.getElementById("bgMusic");
+    const musicBtn = document.getElementById("musicBtn");
 
     function initGame() {
       basket = { x: canvas.width / 2 - 30, y: canvas.height - 40, width: 60, height: 20 };
@@ -119,25 +120,33 @@
       document.getElementById("lives").textContent = lives;
     }
 
-   function toggleMusic() {
-  if (bgMusic.paused) {
-    bgMusic.play()
-      .then(() => {
-        console.log("Music started");
-      })
-      .catch((err) => {
-        console.warn("Music play failed:", err);
-        alert("Tap again to enable music (browser restriction).");
-      });
-  } else {
-    bgMusic.pause();
-  }
-}
-
+    function toggleMusic() {
+      if (bgMusic.paused) {
+        bgMusic.play()
+          .then(() => {
+            musicBtn.textContent = "🎵"; // ON
+          })
+          .catch(() => {
+            alert("Tap again to enable music (browser restriction).");
+          });
+      } else {
+        bgMusic.pause();
+        musicBtn.textContent = "🔇"; // OFF
+      }
+    }
 
     function speak(text) {
       if ('speechSynthesis' in window) {
+        // Pause music while speaking
+        let wasPlaying = !bgMusic.paused;
+        if (wasPlaying) bgMusic.pause();
+
         const msg = new SpeechSynthesisUtterance(text);
+        msg.onend = () => {
+          if (wasPlaying) {
+            bgMusic.play().catch(() => {});
+          }
+        };
         speechSynthesis.speak(msg);
       }
     }
@@ -220,7 +229,10 @@
       document.getElementById("startScreen").style.display = "none";
       initGame();
       speak("Catch " + targetColor);
-      bgMusic.play().catch(() => {});
+
+      // Music default OFF on mobile
+      musicBtn.textContent = "🔇";
+
       ballInterval = setInterval(createBall, 1000);
       gameLoop();
     }
@@ -258,7 +270,5 @@
       canvas.height = window.innerHeight * 0.7;
     });
   </script>
-
-  
 </body>
 </html>
