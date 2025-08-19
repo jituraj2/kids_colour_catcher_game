@@ -1,200 +1,229 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
+  <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Kids Color Catcher Game</title>
   <style>
     body {
       margin: 0;
-      font-family: Arial, sans-serif;
+      background: #f2f8ff;
       display: flex;
       flex-direction: column;
       align-items: center;
-      background: #f0f8ff;
-      height: 100vh;
-      overflow: hidden;
+      font-family: Arial, sans-serif;
     }
-
-    #gameCanvas {
-      border: 3px solid #333;
+    canvas {
       background: #fff;
-      display: block;
+      border: 3px solid #333;
       margin-top: 10px;
+      max-width: 100%;
+      height: auto;
     }
-
-    #hud {
-      margin-top: 10px;
-      font-size: 20px;
-      font-weight: bold;
-    }
-
-    #target-ball {
-      display: inline-block;
-      width: 22px;
-      height: 22px;
-      border-radius: 50%;
-      margin-left: 5px;
-      vertical-align: middle;
-      border: 1px solid #333;
-    }
-
     #controls {
-      margin-top: 12px;
+      margin-top: 10px;
+      display: flex;
+      gap: 10px;
     }
-
     button {
-      padding: 8px 15px;
-      font-size: 16px;
-      border: none;
+      padding: 10px 20px;
+      font-size: 18px;
       border-radius: 8px;
-      cursor: pointer;
-      margin: 0 5px;
+      border: none;
       background: #4CAF50;
       color: white;
+      cursor: pointer;
+    }
+    button:hover { background: #45a049; }
+    #hud {
+      display: flex;
+      justify-content: space-between;
+      width: 520px;
+      max-width: 100%;
+      margin-top: 10px;
+      font-size: 18px;
+      font-weight: bold;
+    }
+    #target-ball {
+      display: inline-block;
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      margin-left: 6px;
+      vertical-align: middle;
+      border: 1px solid #333;
     }
   </style>
 </head>
 <body>
-  <canvas id="gameCanvas" width="400" height="500"></canvas>
-
+  <h2>🎨 Kids Color Catcher Game</h2>
   <div id="hud">
-    Catch: <b id="target-text">---</b>
-    <span id="target-ball"></span> |
-    Score: <span id="score">0</span>
+    <p id="target">Catch: </p>
+    <p id="score">Score: 0</p>
   </div>
+  <canvas id="gameCanvas" width="520" height="520"></canvas>
 
   <div id="controls">
-    <button id="startBtn">Start</button>
-    <button id="pauseBtn">Pause</button>
+    <button id="leftBtn">⬅️</button>
+    <button id="startPauseBtn">Start</button>
+    <button id="rightBtn">➡️</button>
+    <button id="musicBtn">🔊</button>
   </div>
 
-  <audio id="bgMusic" loop>
-    <source src="https://cdn.pixabay.com/download/audio/2023/03/15/audio_7f8b9b3b6c.mp3?filename=happy-kids-background-music-141081.mp3" type="audio/mpeg">
-  </audio>
-  <audio id="correctSound">
-    <source src="https://cdn.pixabay.com/download/audio/2022/10/30/audio_8f3ff8e3d2.mp3?filename=correct-2-46134.mp3" type="audio/mpeg">
-  </audio>
-  <audio id="wrongSound">
-    <source src="https://cdn.pixabay.com/download/audio/2022/03/10/audio_90f692db37.mp3?filename=error-126627.mp3" type="audio/mpeg">
-  </audio>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/howler/2.2.3/howler.min.js"></script>
 
   <script>
     const canvas = document.getElementById("gameCanvas");
     const ctx = canvas.getContext("2d");
-    const basketWidth = 65, basketHeight = 20;
-    let basketX = (canvas.width - basketWidth) / 2;
-    const basketY = canvas.height - basketHeight - 10;
+    const targetEl = document.getElementById("target");
+    const scoreEl = document.getElementById("score");
+    const startPauseBtn = document.getElementById("startPauseBtn");
+    const leftBtn = document.getElementById("leftBtn");
+    const rightBtn = document.getElementById("rightBtn");
+    const musicBtn = document.getElementById("musicBtn");
 
+    // 🎵 Sounds
+    const bgMusic = new Howl({
+      src: ["https://actions.google.com/sounds/v1/ambiences/woodland_ambience.ogg"],
+      loop: true,
+      volume: 0.2
+    });
+    const correctSound = new Howl({
+      src: ["https://actions.google.com/sounds/v1/cartoon/clang_and_wobble.ogg"],
+      volume: 0.6
+    });
+    const wrongSound = new Howl({
+      src: ["https://actions.google.com/sounds/v1/cartoon/wood_plank_flicks.ogg"],
+      volume: 0.6
+    });
+
+    let musicOn = false;
+
+    // 🎨 Colors
     const colors = [
-      {name: "Red", code: "#ff0000"},
-      {name: "Blue", code: "#0000ff"},
-      {name: "Green", code: "#00ff00"},
-      {name: "Yellow", code: "#ffff00"},
-      {name: "Purple", code: "#800080"}
+      {name:"Red", code:"#FF0000"},
+      {name:"Blue", code:"#0000FF"},
+      {name:"Green", code:"#008000"},
+      {name:"Yellow", code:"#FFFF00"},
+      {name:"Orange", code:"#FFA500"},
+      {name:"Purple", code:"#800080"}
     ];
 
+    let basket = {x: 200, y: 470, width: 120, height: 30};
     let balls = [];
+    let targetColor;
     let score = 0;
-    let targetColor = null;
-    let gameInterval;
-    let gameRunning = false;
-
-    const bgMusic = document.getElementById("bgMusic");
-    const correctSound = document.getElementById("correctSound");
-    const wrongSound = document.getElementById("wrongSound");
+    let gameOver = false;
+    let ballInterval;
+    let paused = false;
 
     function pickTarget() {
       targetColor = colors[Math.floor(Math.random() * colors.length)];
-      document.getElementById("target-text").textContent = targetColor.name;
-      document.getElementById("target-ball").style.background = targetColor.code;
+      targetEl.innerHTML = `Catch: <b>${targetColor.name}</b> 
+        <span id="target-ball" style="background:${targetColor.code}"></span>`;
+    }
+
+    function createBall() {
+      if (paused || gameOver) return;
+      if (balls.length > 0) {
+        let lastBall = balls[balls.length-1];
+        if (canvas.height - lastBall.y < 120) return; 
+      }
+      const color = colors[Math.floor(Math.random() * colors.length)];
+      let x;
+      do {
+        x = Math.random() * (canvas.width - 40) + 20; 
+      } while (balls.some(b => Math.abs(b.x - x) < 80)); 
+      balls.push({x: x, y: 0, radius: 22, color: color});
     }
 
     function drawBasket() {
       ctx.fillStyle = "#333";
-      ctx.fillRect(basketX, basketY, basketWidth, basketHeight);
+      ctx.fillRect(basket.x, basket.y, basket.width, basket.height);
     }
 
     function drawBalls() {
-      balls.forEach(ball => {
+      for (let ball of balls) {
         ctx.beginPath();
-        ctx.arc(ball.x, ball.y, 14, 0, Math.PI * 2);
+        ctx.arc(ball.x, ball.y, ball.radius, 0, Math.PI*2);
         ctx.fillStyle = ball.color.code;
         ctx.fill();
         ctx.closePath();
-      });
+      }
     }
 
-    function moveBalls() {
-      balls.forEach(ball => {
-        ball.y += 2; // slower speed
-      });
-
-      balls = balls.filter(ball => {
-        if (ball.y + 14 > basketY && ball.x > basketX && ball.x < basketX + basketWidth) {
+    function updateBalls() {
+      for (let i=balls.length-1; i>=0; i--) {
+        let ball = balls[i];
+        ball.y += 2.2;
+        if (ball.y + ball.radius > basket.y &&
+            ball.x > basket.x && ball.x < basket.x + basket.width) {
           if (ball.color.name === targetColor.name) {
             score++;
-            document.getElementById("score").textContent = score;
+            scoreEl.textContent = "Score: " + score;
             correctSound.play();
-            pickTarget();
           } else {
             wrongSound.play();
+            gameOver = true;
           }
-          return false;
+          balls.splice(i,1);
+          if(!gameOver) pickTarget();
         }
-        return ball.y < canvas.height;
-      });
+        if (ball.y > canvas.height) balls.splice(i,1);
+      }
     }
 
-    function spawnBall() {
-      const color = colors[Math.floor(Math.random() * colors.length)];
-      const x = Math.random() * (canvas.width - 30) + 15; // gap between drops
-      balls.push({x, y: 0, color});
-    }
-
-    function draw() {
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
+    function gameLoop() {
+      if (paused) { requestAnimationFrame(gameLoop); return; }
+      if (gameOver) {
+        ctx.fillStyle = "red";
+        ctx.font = "26px Arial";
+        ctx.fillText("Game Over! Score: " + score, 130, 260);
+        startPauseBtn.textContent = "Restart";
+        clearInterval(ballInterval);
+        return;
+      }
+      ctx.clearRect(0,0,canvas.width,canvas.height);
       drawBasket();
       drawBalls();
-      if (gameRunning) moveBalls();
+      updateBalls();
+      requestAnimationFrame(gameLoop);
     }
 
-    function startGame() {
-      if (!gameRunning) {
-        score = 0;
-        balls = [];
-        document.getElementById("score").textContent = 0;
+    startPauseBtn.addEventListener("click", () => {
+      if (gameOver) {
+        score = 0; scoreEl.textContent = "Score: 0";
+        gameOver = false; balls = [];
         pickTarget();
-        bgMusic.play().catch(() => {});
-        gameInterval = setInterval(() => {
-          if (Math.random() < 0.03) spawnBall();
-          draw();
-        }, 20);
-        gameRunning = true;
+        basket.x = 200;
+        clearInterval(ballInterval);
+        ballInterval = setInterval(createBall, 2000);
+        startPauseBtn.textContent = "Pause";
+        paused = false;
+        gameLoop();
+      } else {
+        if (!paused) {
+          paused = true;
+          startPauseBtn.textContent = "Resume";
+        } else {
+          paused = false;
+          startPauseBtn.textContent = "Pause";
+          gameLoop();
+        }
       }
-    }
-
-    function pauseGame() {
-      if (gameRunning) {
-        clearInterval(gameInterval);
-        bgMusic.pause();
-        gameRunning = false;
-        draw();
-      }
-    }
-
-    document.addEventListener("keydown", e => {
-      if (e.key === "ArrowLeft" && basketX > 0) basketX -= 30;
-      if (e.key === "ArrowRight" && basketX < canvas.width - basketWidth) basketX += 30;
-      draw();
     });
 
-    document.getElementById("startBtn").addEventListener("click", startGame);
-    document.getElementById("pauseBtn").addEventListener("click", pauseGame);
+    leftBtn.addEventListener("click", ()=> basket.x -= 40);
+    rightBtn.addEventListener("click", ()=> basket.x += 40);
+    document.addEventListener("keydown", (e)=>{
+      if(e.key==="ArrowLeft") basket.x -= 40;
+      if(e.key==="ArrowRight") basket.x += 40;
+    });
 
-    // Initial draw
-    pickTarget();
-    draw();
+    musicBtn.addEventListener("click", () => {
+      if (!musicOn) { bgMusic.play(); musicOn = true; musicBtn.textContent="🔇"; }
+      else { bgMusic.stop(); musicOn = false; musicBtn.textContent="🔊"; }
+    });
   </script>
 </body>
 </html>
