@@ -42,16 +42,6 @@
       max-width: 100%;
       margin-top: 10px;
       font-size: 18px;
-      font-weight: bold;
-    }
-    #target-ball {
-      display: inline-block;
-      width: 20px;
-      height: 20px;
-      border-radius: 50%;
-      margin-left: 6px;
-      vertical-align: middle;
-      border: 1px solid #333;
     }
   </style>
 </head>
@@ -65,7 +55,7 @@
 
   <div id="controls">
     <button id="leftBtn">⬅️</button>
-    <button id="startPauseBtn">Start</button>
+    <button id="startBtn">Start</button>
     <button id="rightBtn">➡️</button>
     <button id="musicBtn">🔊</button>
   </div>
@@ -77,7 +67,7 @@
     const ctx = canvas.getContext("2d");
     const targetEl = document.getElementById("target");
     const scoreEl = document.getElementById("score");
-    const startPauseBtn = document.getElementById("startPauseBtn");
+    const startBtn = document.getElementById("startBtn");
     const leftBtn = document.getElementById("leftBtn");
     const rightBtn = document.getElementById("rightBtn");
     const musicBtn = document.getElementById("musicBtn");
@@ -115,17 +105,16 @@
     let score = 0;
     let gameOver = false;
     let ballInterval;
-    let paused = false;
 
     function pickTarget() {
       targetColor = colors[Math.floor(Math.random() * colors.length)];
-      targetEl.innerHTML = `Catch: <b>${targetColor.name}</b> 
-        <span id="target-ball" style="background:${targetColor.code}"></span>`;
+      targetEl.textContent = `Catch: ${targetColor.name} (${targetColor.code})`;
+      targetEl.style.color = targetColor.code;
     }
 
     function createBall() {
-      if (paused || gameOver) return;
       if (balls.length > 0) {
+        // prevent clutter: don’t spawn if last ball is too close
         let lastBall = balls[balls.length-1];
         if (canvas.height - lastBall.y < 120) return; 
       }
@@ -133,7 +122,7 @@
       let x;
       do {
         x = Math.random() * (canvas.width - 40) + 20; 
-      } while (balls.some(b => Math.abs(b.x - x) < 80)); 
+      } while (balls.some(b => Math.abs(b.x - x) < 80)); // gap between balls
       balls.push({x: x, y: 0, radius: 22, color: color});
     }
 
@@ -174,12 +163,11 @@
     }
 
     function gameLoop() {
-      if (paused) { requestAnimationFrame(gameLoop); return; }
       if (gameOver) {
         ctx.fillStyle = "red";
         ctx.font = "26px Arial";
         ctx.fillText("Game Over! Score: " + score, 130, 260);
-        startPauseBtn.textContent = "Restart";
+        startBtn.textContent = "Restart";
         clearInterval(ballInterval);
         return;
       }
@@ -190,29 +178,17 @@
       requestAnimationFrame(gameLoop);
     }
 
-    startPauseBtn.addEventListener("click", () => {
-      if (gameOver) {
-        score = 0; scoreEl.textContent = "Score: 0";
-        gameOver = false; balls = [];
-        pickTarget();
-        basket.x = 200;
-        clearInterval(ballInterval);
-        ballInterval = setInterval(createBall, 2000);
-        startPauseBtn.textContent = "Pause";
-        paused = false;
-        gameLoop();
-      } else {
-        if (!paused) {
-          paused = true;
-          startPauseBtn.textContent = "Resume";
-        } else {
-          paused = false;
-          startPauseBtn.textContent = "Pause";
-          gameLoop();
-        }
-      }
+    startBtn.addEventListener("click", () => {
+      score = 0; scoreEl.textContent = "Score: 0";
+      gameOver = false; balls = [];
+      pickTarget();
+      basket.x = 200;
+      clearInterval(ballInterval);
+      ballInterval = setInterval(createBall, 2000); // slower, more spaced
+      gameLoop();
     });
 
+    // Controls
     leftBtn.addEventListener("click", ()=> basket.x -= 40);
     rightBtn.addEventListener("click", ()=> basket.x += 40);
     document.addEventListener("keydown", (e)=>{
@@ -220,6 +196,7 @@
       if(e.key==="ArrowRight") basket.x += 40;
     });
 
+    // Music toggle
     musicBtn.addEventListener("click", () => {
       if (!musicOn) { bgMusic.play(); musicOn = true; musicBtn.textContent="🔇"; }
       else { bgMusic.stop(); musicOn = false; musicBtn.textContent="🔊"; }
