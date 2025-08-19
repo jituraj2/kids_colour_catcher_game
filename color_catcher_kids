@@ -93,9 +93,6 @@
   </div>
   <div id="hint">💡 Use arrows or keys to catch the correct color!</div>
 
-  <!-- IMPORTANT: preload + playsinline for mobile -->
-  <audio id="bgMusic" src="https://cdn.pixabay.com/audio/2022/03/15/audio_c4eb480c96.mp3" loop preload="auto" playsinline muted></audio>
-
   <script>
     const canvas = document.getElementById("gameCanvas");
     const ctx = canvas.getContext("2d");
@@ -106,9 +103,49 @@
     let targetColor, basket, balls, score, lives, gameStarted;
     let ballInterval;
 
-    const bgMusic = document.getElementById("bgMusic");
-    const musicBtn = document.getElementById("musicBtn");
+    // --- AUDIO FIX FOR MOBILE ---
+    let audioCtx;
+    let bgMusic;
+    let musicSource;
+    let isMusicPlaying = false;
 
+    async function initAudio() {
+      if (!audioCtx) {
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        const response = await fetch("https://cdn.pixabay.com/audio/2022/03/15/audio_c4eb480c96.mp3");
+        const arrayBuffer = await response.arrayBuffer();
+        bgMusic = await audioCtx.decodeAudioData(arrayBuffer);
+      }
+    }
+
+    async function toggleMusic() {
+      try {
+        if (!audioCtx) await initAudio();
+
+        if (audioCtx.state === "suspended") {
+          await audioCtx.resume(); // unlock audio
+        }
+
+        if (!isMusicPlaying) {
+          musicSource = audioCtx.createBufferSource();
+          musicSource.buffer = bgMusic;
+          musicSource.loop = true;
+          musicSource.connect(audioCtx.destination);
+          musicSource.start(0);
+          isMusicPlaying = true;
+          document.getElementById("musicBtn").textContent = "🎵";
+        } else {
+          if (musicSource) musicSource.stop();
+          isMusicPlaying = false;
+          document.getElementById("musicBtn").textContent = "🔇";
+        }
+      } catch (err) {
+        console.log("Music error:", err);
+        alert("Tap again to enable sound (browser restriction).");
+      }
+    }
+
+    // --- GAME LOGIC ---
     function initGame() {
       basket = { x: canvas.width / 2 - 30, y: canvas.height - 40, width: 60, height: 20 };
       balls = [];
@@ -119,31 +156,6 @@
       document.getElementById("targetColor").textContent = targetColor;
       document.getElementById("score").textContent = score;
       document.getElementById("lives").textContent = lives;
-    }
-
-    function toggleMusic() {
-      try {
-        if (bgMusic.paused) {
-          bgMusic.muted = false; // ensure sound
-          bgMusic.play().then(() => {
-            musicBtn.textContent = "🎵"; // playing
-          }).catch((err) => {
-            alert("Tap again to enable music (mobile restriction).");
-          });
-        } else {
-          bgMusic.pause();
-          musicBtn.textContent = "🔇"; // paused
-        }
-      } catch (e) {
-        console.log("Music toggle failed:", e);
-      }
-    }
-
-    function speak(text) {
-      if ('speechSynthesis' in window) {
-        const msg = new SpeechSynthesisUtterance(text);
-        speechSynthesis.speak(msg);
-      }
     }
 
     function createBall() {
@@ -189,7 +201,7 @@
           if (balls[i].color === targetColor) {
             score++;
             if (score >= 10) {
-              speak("🎉 You Win!");
+              alert("🎉 You Win!");
               resetGame();
             }
           } else {
@@ -204,7 +216,6 @@
           document.getElementById("lives").textContent = lives;
           targetColor = colors[Math.floor(Math.random() * colors.length)];
           document.getElementById("targetColor").textContent = targetColor;
-          speak("Catch " + targetColor);
         } else if (balls[i].y > canvas.height) {
           balls.splice(i, 1);
         }
@@ -223,14 +234,6 @@
     function startGame() {
       document.getElementById("startScreen").style.display = "none";
       initGame();
-      speak("Catch " + targetColor);
-
-      // Music starts muted until user clicks button
-      bgMusic.pause();
-      bgMusic.currentTime = 0;
-      bgMusic.muted = false;
-      musicBtn.textContent = "🔇";
-
       ballInterval = setInterval(createBall, 1000);
       gameLoop();
     }
@@ -253,14 +256,15 @@
       clearInterval(ballInterval);
       gameStarted = false;
       document.getElementById("gameOverScreen").style.display = "flex";
-      speak("Game over");
     }
 
+    // Keyboard support
     document.addEventListener("keydown", (e) => {
       if (e.key === "ArrowLeft") moveLeft();
       if (e.key === "ArrowRight") moveRight();
     });
 
+    // Resize handling
     window.addEventListener("resize", () => {
       canvas.width = window.innerWidth;
       canvas.height = window.innerHeight * 0.7;
