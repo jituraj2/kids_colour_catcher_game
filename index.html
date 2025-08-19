@@ -11,7 +11,6 @@
       display: flex;
       flex-direction: column;
       align-items: center;
-      justify-content: center;
       background: #f0f8ff;
       height: 100vh;
       overflow: hidden;
@@ -21,14 +20,10 @@
       border: 3px solid #333;
       background: #fff;
       display: block;
-      margin: 10px auto;
+      margin-top: 10px;
     }
 
     #hud {
-      display: flex;
-      justify-content: space-between;
-      width: 90%;
-      max-width: 500px;
       margin-top: 10px;
       font-size: 20px;
       font-weight: bold;
@@ -36,10 +31,10 @@
 
     #target-ball {
       display: inline-block;
-      width: 26px;
-      height: 26px;
+      width: 22px;
+      height: 22px;
       border-radius: 50%;
-      margin-left: 8px;
+      margin-left: 5px;
       vertical-align: middle;
       border: 1px solid #333;
     }
@@ -49,52 +44,29 @@
     }
 
     button {
-      padding: 10px 18px;
+      padding: 8px 15px;
       font-size: 16px;
       border: none;
       border-radius: 8px;
       cursor: pointer;
-      margin: 5px;
+      margin: 0 5px;
       background: #4CAF50;
       color: white;
-    }
-
-    #mobileControls {
-      display: none;
-      margin-top: 12px;
-    }
-
-    #mobileControls button {
-      padding: 15px 20px;
-      font-size: 22px;
-    }
-
-    @media (max-width: 768px) {
-      #mobileControls {
-        display: block;
-      }
     }
   </style>
 </head>
 <body>
-  <canvas id="gameCanvas" width="420" height="600"></canvas>
+  <canvas id="gameCanvas" width="400" height="500"></canvas>
 
   <div id="hud">
-    <p id="target">
-      Catch: <b id="target-text">---</b> 
-      <span id="target-ball"></span>
-    </p>
-    <p id="score">Score: 0</p>
+    Catch: <b id="target-text">---</b>
+    <span id="target-ball"></span> |
+    Score: <span id="score">0</span>
   </div>
 
   <div id="controls">
     <button id="startBtn">Start</button>
     <button id="pauseBtn">Pause</button>
-  </div>
-
-  <div id="mobileControls">
-    <button id="leftBtn">⬅️</button>
-    <button id="rightBtn">➡️</button>
   </div>
 
   <audio id="bgMusic" loop>
@@ -110,7 +82,7 @@
   <script>
     const canvas = document.getElementById("gameCanvas");
     const ctx = canvas.getContext("2d");
-    const basketWidth = 78, basketHeight = 26; // 30% bigger
+    const basketWidth = 65, basketHeight = 20;
     let basketX = (canvas.width - basketWidth) / 2;
     const basketY = canvas.height - basketHeight - 10;
 
@@ -146,7 +118,7 @@
     function drawBalls() {
       balls.forEach(ball => {
         ctx.beginPath();
-        ctx.arc(ball.x, ball.y, 16, 0, Math.PI * 2); // 30% bigger
+        ctx.arc(ball.x, ball.y, 14, 0, Math.PI * 2);
         ctx.fillStyle = ball.color.code;
         ctx.fill();
         ctx.closePath();
@@ -155,14 +127,14 @@
 
     function moveBalls() {
       balls.forEach(ball => {
-        ball.y += 1.8; // slower falling
+        ball.y += 2; // slower speed
       });
 
       balls = balls.filter(ball => {
-        if (ball.y + 16 > basketY && ball.x > basketX && ball.x < basketX + basketWidth) {
+        if (ball.y + 14 > basketY && ball.x > basketX && ball.x < basketX + basketWidth) {
           if (ball.color.name === targetColor.name) {
             score++;
-            document.getElementById("score").textContent = "Score: " + score;
+            document.getElementById("score").textContent = score;
             correctSound.play();
             pickTarget();
           } else {
@@ -176,7 +148,7 @@
 
     function spawnBall() {
       const color = colors[Math.floor(Math.random() * colors.length)];
-      const x = Math.random() * (canvas.width - 20) + 10;
+      const x = Math.random() * (canvas.width - 30) + 15; // gap between drops
       balls.push({x, y: 0, color});
     }
 
@@ -191,11 +163,11 @@
       if (!gameRunning) {
         score = 0;
         balls = [];
-        document.getElementById("score").textContent = "Score: 0";
+        document.getElementById("score").textContent = 0;
         pickTarget();
         bgMusic.play().catch(() => {});
         gameInterval = setInterval(() => {
-          if (Math.random() < 0.04) spawnBall();
+          if (Math.random() < 0.03) spawnBall();
           draw();
         }, 20);
         gameRunning = true;
@@ -207,34 +179,22 @@
         clearInterval(gameInterval);
         bgMusic.pause();
         gameRunning = false;
-        draw(); // still show basket + balls
+        draw();
       }
     }
 
-    // Keyboard controls
     document.addEventListener("keydown", e => {
       if (e.key === "ArrowLeft" && basketX > 0) basketX -= 30;
       if (e.key === "ArrowRight" && basketX < canvas.width - basketWidth) basketX += 30;
       draw();
     });
 
-    // Mobile controls
-    document.getElementById("leftBtn").addEventListener("click", () => {
-      if (basketX > 0) basketX -= 30;
-      draw();
-    });
-    document.getElementById("rightBtn").addEventListener("click", () => {
-      if (basketX < canvas.width - basketWidth) basketX += 30;
-      draw();
-    });
-
-    // Buttons
     document.getElementById("startBtn").addEventListener("click", startGame);
     document.getElementById("pauseBtn").addEventListener("click", pauseGame);
 
-    // Initialize
+    // Initial draw
     pickTarget();
-    draw(); // ✅ draw basket immediately
+    draw();
   </script>
 </body>
 </html>
