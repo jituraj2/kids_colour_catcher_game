@@ -184,7 +184,7 @@
       ctx.clearRect(0, 0, canvas.width, canvas.height);
       drawBasket();
       drawBalls();
-      moveBalls();
+      if (gameRunning) moveBalls();
     }
 
     function startGame() {
@@ -207,6 +207,7 @@
         clearInterval(gameInterval);
         bgMusic.pause();
         gameRunning = false;
+        draw(); // still show basket + balls
       }
     }
 
@@ -214,14 +215,17 @@
     document.addEventListener("keydown", e => {
       if (e.key === "ArrowLeft" && basketX > 0) basketX -= 30;
       if (e.key === "ArrowRight" && basketX < canvas.width - basketWidth) basketX += 30;
+      draw();
     });
 
     // Mobile controls
     document.getElementById("leftBtn").addEventListener("click", () => {
       if (basketX > 0) basketX -= 30;
+      draw();
     });
     document.getElementById("rightBtn").addEventListener("click", () => {
       if (basketX < canvas.width - basketWidth) basketX += 30;
+      draw();
     });
 
     // Buttons
@@ -230,6 +234,7 @@
 
     // Initialize
     pickTarget();
+    draw(); // ✅ draw basket immediately
   </script>
 </body>
 </html>
