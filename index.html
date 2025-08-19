@@ -108,8 +108,16 @@
 
     function pickTarget() {
       targetColor = colors[Math.floor(Math.random() * colors.length)];
-      targetEl.textContent = `Catch: ${targetColor.name} (${targetColor.code})`;
-      targetEl.style.color = targetColor.code;
+      targetEl.innerHTML = `Catch: <b>${targetColor.name}</b> 
+        <span style="
+          display:inline-block;
+          width:20px;
+          height:20px;
+          border-radius:50%;
+          background:${targetColor.code};
+          margin-left:6px;
+          border:1px solid #333;
+        "></span>`;
     }
 
     function createBall() {
