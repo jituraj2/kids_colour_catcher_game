@@ -43,152 +43,172 @@
       margin-top: 10px;
       font-size: 18px;
     }
-    /* 🔔 Popup Styles */
-    #popup {
-      position: fixed;
-      top: 0; left: 0; right: 0; bottom: 0;
-      background: rgba(0,0,0,0.6);
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      z-index: 1000;
-    }
-    #popupContent {
-      background: #fff;
-      padding: 25px;
-      border-radius: 12px;
-      width: 320px;
-      text-align: center;
-      font-size: 16px;
-      box-shadow: 0px 6px 16px rgba(0,0,0,0.3);
-      animation: fadeIn 0.4s ease;
-    }
-    #popupContent h3 {
-      margin-top: 0;
-      color: #333;
-    }
-    #closePopup {
-      margin-top: 15px;
-      padding: 8px 16px;
-      background: #4CAF50;
-      color: #fff;
-      border: none;
-      border-radius: 6px;
-      cursor: pointer;
-      font-size: 16px;
-    }
-    #closePopup:hover { background: #45a049; }
-    @keyframes fadeIn {
-      from {opacity:0; transform: scale(0.9);}
-      to {opacity:1; transform: scale(1);}
-    }
   </style>
 </head>
 <body>
-
-  <!-- Popup Instructions -->
-  <div id="popup">
-    <div id="popupContent">
-      <h3>🎮 How to Play</h3>
-      <p>Move the basket left or right to catch the <b>correct color</b> shown in "Catch".</p>
-      <p>✅ Correct color = Score points<br>❌ Wrong color = Game Over</p>
-      <button id="closePopup">Close</button>
-    </div>
-  </div>
-
+  <h2>🎨 Kids Color Catcher Game</h2>
   <div id="hud">
-    <p id="target">Catch: <b>---</b></p>
+    <p id="target">Catch: </p>
     <p id="score">Score: 0</p>
   </div>
-
-  <canvas id="gameCanvas" width="500" height="500"></canvas>
+  <canvas id="gameCanvas" width="520" height="520"></canvas>
 
   <div id="controls">
-    <button onclick="startGame()">Start</button>
-    <button onclick="pauseGame()">Pause</button>
+    <button id="leftBtn">⬅️</button>
+    <button id="startBtn">Start</button>
+    <button id="rightBtn">➡️</button>
+    <button id="musicBtn">🔊</button>
   </div>
 
-<script>
-  // Popup close
-  document.getElementById("closePopup").onclick = () => {
-    document.getElementById("popup").style.display = "none";
-  };
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/howler/2.2.3/howler.min.js"></script>
 
-  // 🎨 Game setup
-  const canvas = document.getElementById("gameCanvas");
-  const ctx = canvas.getContext("2d");
-  let basket = { x: 220, y: 460, w: 60, h: 20, color: "black" };
-  let drops = [];
-  let colors = [
-    { name: "Red", code: "red" },
-    { name: "Blue", code: "blue" },
-    { name: "Green", code: "green" },
-    { name: "Yellow", code: "yellow" }
-  ];
-  let targetColor, score = 0, gameRunning = false, gameInterval;
+  <script>
+    const canvas = document.getElementById("gameCanvas");
+    const ctx = canvas.getContext("2d");
+    const targetEl = document.getElementById("target");
+    const scoreEl = document.getElementById("score");
+    const startBtn = document.getElementById("startBtn");
+    const leftBtn = document.getElementById("leftBtn");
+    const rightBtn = document.getElementById("rightBtn");
+    const musicBtn = document.getElementById("musicBtn");
 
-  function pickTarget() {
-    targetColor = colors[Math.floor(Math.random() * colors.length)];
-    document.getElementById("target").innerHTML = 
-      `Catch: <b>${targetColor.name}</b> 
-       <span style="
-         display:inline-block;width:20px;height:20px;
-         border-radius:50%;background:${targetColor.code};
-         margin-left:6px;border:1px solid #333;"></span>`;
-  }
+    // 🎵 Sounds
+    const bgMusic = new Howl({
+      src: ["https://actions.google.com/sounds/v1/ambiences/woodland_ambience.ogg"],
+      loop: true,
+      volume: 0.2
+    });
+    const correctSound = new Howl({
+      src: ["https://actions.google.com/sounds/v1/cartoon/clang_and_wobble.ogg"],
+      volume: 0.6
+    });
+    const wrongSound = new Howl({
+      src: ["https://actions.google.com/sounds/v1/cartoon/wood_plank_flicks.ogg"],
+      volume: 0.6
+    });
 
-  function startGame() {
-    if (gameRunning) return;
-    score = 0;
-    drops = [];
-    pickTarget();
-    document.getElementById("score").innerText = "Score: 0";
-    gameRunning = true;
-    gameInterval = setInterval(gameLoop, 30);
-  }
+    let musicOn = false;
 
-  function pauseGame() {
-    gameRunning = false;
-    clearInterval(gameInterval);
-  }
+    // 🎨 Colors
+    const colors = [
+      {name:"Red", code:"#FF0000"},
+      {name:"Blue", code:"#0000FF"},
+      {name:"Green", code:"#008000"},
+      {name:"Yellow", code:"#FFFF00"},
+      {name:"Orange", code:"#FFA500"},
+      {name:"Purple", code:"#800080"}
+    ];
 
-  function gameLoop() {
-    ctx.clearRect(0,0,canvas.width,canvas.height);
-    ctx.fillStyle = basket.color;
-    ctx.fillRect(basket.x, basket.y, basket.w, basket.h);
+    let basket = {x: 200, y: 470, width: 120, height: 30};
+    let balls = [];
+    let targetColor;
+    let score = 0;
+    let gameOver = false;
+    let ballInterval;
 
-    if (Math.random() < 0.03) {
-      let color = colors[Math.floor(Math.random()*colors.length)];
-      drops.push({x:Math.random()*480,y:0,color:color});
+    function pickTarget() {
+      targetColor = colors[Math.floor(Math.random() * colors.length)];
+      targetEl.innerHTML = `Catch: <b>${targetColor.name}</b> 
+        <span style="
+          display:inline-block;
+          width:20px;
+          height:20px;
+          border-radius:50%;
+          background:${targetColor.code};
+          margin-left:6px;
+          border:1px solid #333;
+        "></span>`;
     }
 
-    for (let i=0;i<drops.length;i++) {
-      let d = drops[i];
-      ctx.beginPath();
-      ctx.arc(d.x,d.y,12,0,Math.PI*2);
-      ctx.fillStyle = d.color.code;
-      ctx.fill();
-      d.y += 2;
+    function createBall() {
+      if (balls.length > 0) {
+        // prevent clutter: don’t spawn if last ball is too close
+        let lastBall = balls[balls.length-1];
+        if (canvas.height - lastBall.y < 120) return; 
+      }
+      const color = colors[Math.floor(Math.random() * colors.length)];
+      let x;
+      do {
+        x = Math.random() * (canvas.width - 40) + 20; 
+      } while (balls.some(b => Math.abs(b.x - x) < 80)); // gap between balls
+      balls.push({x: x, y: 0, radius: 22, color: color});
+    }
 
-      if (d.y > basket.y && d.x > basket.x && d.x < basket.x+basket.w) {
-        if (d.color.name === targetColor.name) {
-          score++;
-          document.getElementById("score").innerText = "Score: " + score;
-          pickTarget();
-        } else {
-          alert("Game Over! Final Score: " + score);
-          pauseGame();
-        }
-        drops.splice(i,1);
+    function drawBasket() {
+      ctx.fillStyle = "#333";
+      ctx.fillRect(basket.x, basket.y, basket.width, basket.height);
+    }
+
+    function drawBalls() {
+      for (let ball of balls) {
+        ctx.beginPath();
+        ctx.arc(ball.x, ball.y, ball.radius, 0, Math.PI*2);
+        ctx.fillStyle = ball.color.code;
+        ctx.fill();
+        ctx.closePath();
       }
     }
-  }
 
-  // Keyboard move
-  document.addEventListener("keydown",(e)=>{
-    if(e.key==="ArrowLeft" && basket.x>0) basket.x-=20;
-    if(e.key==="ArrowRight" && basket.x<canvas.width-basket.w) basket.x+=20;
-  });
-</script>
+    function updateBalls() {
+      for (let i=balls.length-1; i>=0; i--) {
+        let ball = balls[i];
+        ball.y += 2.2;
+        if (ball.y + ball.radius > basket.y &&
+            ball.x > basket.x && ball.x < basket.x + basket.width) {
+          if (ball.color.name === targetColor.name) {
+            score++;
+            scoreEl.textContent = "Score: " + score;
+            correctSound.play();
+          } else {
+            wrongSound.play();
+            gameOver = true;
+          }
+          balls.splice(i,1);
+          if(!gameOver) pickTarget();
+        }
+        if (ball.y > canvas.height) balls.splice(i,1);
+      }
+    }
+
+    function gameLoop() {
+      if (gameOver) {
+        ctx.fillStyle = "red";
+        ctx.font = "26px Arial";
+        ctx.fillText("Game Over! Score: " + score, 130, 260);
+        startBtn.textContent = "Restart";
+        clearInterval(ballInterval);
+        return;
+      }
+      ctx.clearRect(0,0,canvas.width,canvas.height);
+      drawBasket();
+      drawBalls();
+      updateBalls();
+      requestAnimationFrame(gameLoop);
+    }
+
+    startBtn.addEventListener("click", () => {
+      score = 0; scoreEl.textContent = "Score: 0";
+      gameOver = false; balls = [];
+      pickTarget();
+      basket.x = 200;
+      clearInterval(ballInterval);
+      ballInterval = setInterval(createBall, 2000); // slower, more spaced
+      gameLoop();
+    });
+
+    // Controls
+    leftBtn.addEventListener("click", ()=> basket.x -= 40);
+    rightBtn.addEventListener("click", ()=> basket.x += 40);
+    document.addEventListener("keydown", (e)=>{
+      if(e.key==="ArrowLeft") basket.x -= 40;
+      if(e.key==="ArrowRight") basket.x += 40;
+    });
+
+    // Music toggle
+    musicBtn.addEventListener("click", () => {
+      if (!musicOn) { bgMusic.play(); musicOn = true; musicBtn.textContent="🔇"; }
+      else { bgMusic.stop(); musicOn = false; musicBtn.textContent="🔊"; }
+    });
+  </script>
 </body>
 </html>
