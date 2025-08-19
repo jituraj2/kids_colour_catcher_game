@@ -122,13 +122,11 @@
 
     function toggleMusic() {
       if (bgMusic.paused) {
-        bgMusic.play()
-          .then(() => {
-            musicBtn.textContent = "🎵"; // ON
-          })
-          .catch(() => {
-            alert("Tap again to enable music (browser restriction).");
-          });
+        bgMusic.play().then(() => {
+          musicBtn.textContent = "🎵"; // ON
+        }).catch(() => {
+          alert("Tap again to enable music (browser restriction).");
+        });
       } else {
         bgMusic.pause();
         musicBtn.textContent = "🔇"; // OFF
@@ -137,16 +135,8 @@
 
     function speak(text) {
       if ('speechSynthesis' in window) {
-        // Pause music while speaking
-        let wasPlaying = !bgMusic.paused;
-        if (wasPlaying) bgMusic.pause();
-
         const msg = new SpeechSynthesisUtterance(text);
-        msg.onend = () => {
-          if (wasPlaying) {
-            bgMusic.play().catch(() => {});
-          }
-        };
+        speechSynthesis.cancel(); // Cancel previous speech to avoid overlap
         speechSynthesis.speak(msg);
       }
     }
@@ -195,7 +185,7 @@
             score++;
             if (score >= 10) {
               speak("🎉 You Win!");
-              resetGame(); // Win auto restarts
+              resetGame();
             }
           } else {
             lives--;
@@ -229,10 +219,7 @@
       document.getElementById("startScreen").style.display = "none";
       initGame();
       speak("Catch " + targetColor);
-
-      // Music default OFF on mobile
       musicBtn.textContent = "🔇";
-
       ballInterval = setInterval(createBall, 1000);
       gameLoop();
     }
